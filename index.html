@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Night Tactical Simulator</title>
+<style>
+  :root{
+    --bg:#0a0e14;
+    --panel:#11161f;
+    --gold:#d4af37;
+    --red:#c1272d;
+    --text:#e8e6e1;
+    --muted:#7a8190;
+    --grass1:#0f3d24;
+    --grass2:#0c331e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px;
+  }
+  h1{
+    font-size:22px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin:6px 0 2px;
+    color:var(--gold);
+    text-shadow:0 0 10px rgba(212,175,55,0.4);
+  }
+  .sub{
+    color:var(--muted);
+    font-size:12px;
+    letter-spacing:3px;
+    margin-bottom:18px;
+    text-transform:uppercase;
+  }
+  .layout{
+    display:flex;
+    gap:24px;
+    flex-wrap:wrap;
+    justify-content:center;
+    width:100%;
+    max-width:1200px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid #232938;
+    border-radius:10px;
+    padding:16px;
+  }
+  .form-panel{
+    width:340px;
+  }
+  .form-panel h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    color:var(--gold);
+    margin:0 0 12px;
+    border-bottom:1px solid #232938;
+    padding-bottom:8px;
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .field{
+    flex:1;
+  }
+  label{
+    display:block;
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:4px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  input, select{
+    width:100%;
+    background:#0d1219;
+    border:1px solid #2a3142;
+    color:var(--text);
+    padding:8px;
+    border-radius:5px;
+    font-size:13px;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  .team-tag{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:6px;
+  }
+  .team-a-tag{background:var(--red);}
+  .team-b-tag{background:#3a7bd5;}
+
+  button.play{
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    background:linear-gradient(135deg, var(--gold), #b8902c);
+    border:none;
+    border-radius:6px;
+    color:#1a1305;
+    font-weight:bold;
+    font-size:14px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.play:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+  button.play:active{transform:scale(0.98);}
+
+  /* ----- VIDEO / FIELD AREA ----- */
+  .video-wrap{
+    width:360px;
+    aspect-ratio:9/16;
+    background:#000;
+    border-radius:14px;
+    border:2px solid #232938;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 0 40px rgba(0,0,0,0.6);
+  }
+  .scoreboard{
+    position:absolute;
+    top:14px; left:0; right:0;
+    display:flex;
+    justify-content:center;
+    z-index:5;
+  }
+  .scorebox{
+    background:rgba(10,14,20,0.85);
+    border:1px solid var(--gold);
+    border-radius:8px;
+    padding:8px 16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    backdrop-filter:blur(4px);
+  }
+  .scorebox .team-name{
+    font-weight:bold;
+    text-transform:uppercase;
+    font-size:11px;
+    letter-spacing:1px;
+  }
+  .scorebox .team-a{color:var(--red);}
+  .scorebox .team-b{color:#5ba0ff;}
+  .scorebox .score{
+    font-size:20px;
+    font-weight:900;
+    color:var(--gold);
+    min-width:46px;
+    text-align:center;
+  }
+  .clock{
+    position:absolute;
+    top:60px; left:0; right:0;
+    text-align:center;
+    z-index:5;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:2px;
+  }
+
+  canvas{
+    position:absolute;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+  }
+
+  .stats-overlay{
+    position:absolute;
+    bottom:14px; left:0; right:0;
+    display:flex;
+    justify-content:space-around;
+    padding:0 10px;
+    z-index:5;
+    gap:6px;
+  }
+  .stat-box{
+    background:rgba(10,14,20,0.85);
+    border:1px solid #2a3142;
+    border-radius:6px;
+    padding:6px 4px;
+    text-align:center;
+    flex:1;
+    backdrop-filter:blur(4px);
+  }
+  .stat-box .stat-label{
+    font-size:8px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-bottom:3px;
+  }
+  .stat-box .stat-values{
+    font-size:12px;
+    font-weight:bold;
+  }
+  .stat-box .va{color:var(--red);}
+  .stat-box .vb{color:#5ba0ff;}
+
+  .goal-flash{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:42px;
+    font-weight:900;
+    letter-spacing:6px;
+    color:var(--gold);
+    text-shadow:0 0 20px rgba(212,175,55,0.9);
+    background:rgba(0,0,0,0.35);
+    z-index:6;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.15s;
+  }
+  .goal-flash.show{
+    opacity:1;
+    animation:flashPulse 1s ease-out;
+  }
+  @keyframes flashPulse{
+    0%{transform:scale(0.6); opacity:0;}
+    30%{transform:scale(1.15); opacity:1;}
+    100%{transform:scale(1); opacity:1;}
+  }
+
+  .brand-tag{
+    position:absolute;
+    bottom:14px;
+    right:14px;
+    font-size:9px;
+    letter-spacing:2px;
+    color:var(--gold);
+    opacity:0.6;
+    z-index:5;
+    text-transform:uppercase;
+  }
+
+  .progress-wrap{
+    margin-top:10px;
+    width:360px;
+    height:6px;
+    background:#1a1f2b;
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .progress-bar{
+    height:100%;
+    background:linear-gradient(90deg, var(--red), var(--gold));
+    width:0%;
+  }
+
+  /* ----- MODE TABS & SEARCH ----- */
+  .mode-tabs{
+    gap:6px;
+  }
+  .mode-btn{
+    flex:1;
+    background:#0d1219;
+    border:1px solid #2a3142;
+    color:var(--muted);
+    padding:8px 4px;
+    border-radius:5px;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    cursor:pointer;
+  }
+  .mode-btn.active{
+    border-color:var(--gold);
+    color:var(--gold);
+    background:rgba(212,175,55,0.08);
+  }
+  button.play.small{
+    padding:8px;
+    font-size:11px;
+    margin-top:0;
+  }
+  .result-list{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    margin-bottom:8px;
+    max-height:160px;
+    overflow-y:auto;
+  }
+  .result-item{
+    background:#0d1219;
+    border:1px solid #2a3142;
+    border-radius:5px;
+    padding:7px 9px;
+    font-size:12px;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .result-item:hover{
+    border-color:var(--gold);
+    color:var(--gold);
+  }
+  .result-item.selected{
+    border-color:var(--gold);
+    background:rgba(212,175,55,0.08);
+    color:var(--gold);
+  }
+  .result-item .ri-sub{
+    color:var(--muted);
+    font-size:10px;
+  }
+  .status-text{
+    font-size:11px;
+    color:var(--muted);
+    min-height:16px;
+    margin-bottom:4px;
+    line-height:1.4;
+  }
+  .status-text.error{
+    color:var(--red);
+  }
+  .status-text.ok{
+    color:#4caf50;
+  }
+</style>
+</head>
+<body>
+
+<h1>Match Night Tactical Simulator</h1>
+<div class="sub">5v5 • Cinematic Match Engine • MVP</div>
+
+<div class="layout">
+
+  <!-- FORM PANEL -->
+  <div class="panel form-panel" id="formPanel">
+
+    <h2>Veri Kaynağı</h2>
+    <div class="row mode-tabs">
+      <button class="mode-btn active" id="modeFinishedBtn" type="button">Bitmiş Maç</button>
+      <button class="mode-btn" id="modePredictBtn" type="button">Tahmin Modu</button>
+      <button class="mode-btn" id="modeManualBtn" type="button">Manuel</button>
+    </div>
+
+    <!-- BİTMİŞ MAÇ ARAMA -->
+    <div id="finishedPanel">
+      <div class="row">
+        <div class="field">
+          <label>Takım Ara</label>
+          <input id="teamSearchInput" type="text" placeholder="Örn: Fenerbahçe" />
+        </div>
+        <div class="field" style="flex:0 0 70px; display:flex; align-items:flex-end;">
+          <button class="play small" id="teamSearchBtn" type="button">Ara</button>
+        </div>
+      </div>
+      <div id="teamSearchResults" class="result-list"></div>
+      <div id="fixtureResults" class="result-list"></div>
+      <div id="finishedStatus" class="status-text"></div>
+    </div>
+
+    <!-- TAHMİN MODU -->
+    <div id="predictPanel" style="display:none;">
+      <div class="row">
+        <div class="field">
+          <label><span class="team-tag team-a-tag"></span>Takım A Ara</label>
+          <input id="predictSearchA" type="text" placeholder="Örn: Türkiye" />
+        </div>
+        <div class="field" style="flex:0 0 70px; display:flex; align-items:flex-end;">
+          <button class="play small" id="predictSearchABtn" type="button">Ara</button>
+        </div>
+      </div>
+      <div id="predictResultsA" class="result-list"></div>
+
+      <div class="row">
+        <div class="field">
+          <label><span class="team-tag team-b-tag"></span>Takım B Ara</label>
+          <input id="predictSearchB" type="text" placeholder="Örn: Portekiz" />
+        </div>
+        <div class="field" style="flex:0 0 70px; display:flex; align-items:flex-end;">
+          <button class="play small" id="predictSearchBBtn" type="button">Ara</button>
+        </div>
+      </div>
+      <div id="predictResultsB" class="result-list"></div>
+
+      <button class="play" id="generatePredictionBtn" type="button" disabled>Senaryo Üret</button>
+      <div id="predictStatus" class="status-text"></div>
+    </div>
+
+    <h2 style="margin-top:14px;">Maç Verileri</h2>
+
+    <div class="row">
+      <div class="field">
+        <label><span class="team-tag team-a-tag"></span>Takım A</label>
+        <input id="teamA" type="text" value="Türkiye" />
+      </div>
+      <div class="field">
+        <label><span class="team-tag team-b-tag"></span>Takım B</label>
+        <input id="teamB" type="text" value="Portekiz" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Skor A</label>
+        <input id="scoreA" type="number" min="0" value="2" />
+      </div>
+      <div class="field">
+        <label>Skor B</label>
+        <input id="scoreB" type="number" min="0" value="1" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>xG A</label>
+        <input id="xgA" type="number" step="0.1" min="0" value="2.1" />
+      </div>
+      <div class="field">
+        <label>xG B</label>
+        <input id="xgB" type="number" step="0.1" min="0" value="1.3" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Şut A</label>
+        <input id="shotsA" type="number" min="0" value="12" />
+      </div>
+      <div class="field">
+        <label>Şut B</label>
+        <input id="shotsB" type="number" min="0" value="8" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>İsabetli Şut A</label>
+        <input id="shotsOnA" type="number" min="0" value="6" />
+      </div>
+      <div class="field">
+        <label>İsabetli Şut B</label>
+        <input id="shotsOnB" type="number" min="0" value="3" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Topa Sahip Olma A (%)</label>
+        <input id="possA" type="number" min="0" max="100" value="58" />
+      </div>
+      <div class="field">
+        <label>Topa Sahip Olma B (%)</label>
+        <input id="possB" type="number" min="0" max="100" value="42" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Gol Dakikaları A (virgülle)</label>
+        <input id="goalsA" type="text" value="23, 78" />
+      </div>
+      <div class="field">
+        <label>Gol Dakikaları B (virgülle)</label>
+        <input id="goalsB" type="text" value="61" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Saha Modu</label>
+        <select id="fieldMode">
+          <option value="3">3v3</option>
+          <option value="5" selected>5v5</option>
+          <option value="7">7v7</option>
+          <option value="11">11v11</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="play" id="playBtn">▶ Simülasyonu Başlat</button>
+  </div>
+
+  <!-- VIDEO PANEL -->
+  <div>
+    <div class="video-wrap" id="videoWrap">
+      <canvas id="fieldCanvas"></canvas>
+
+      <div class="scoreboard">
+        <div class="scorebox">
+          <span class="team-name team-a" id="dispTeamA">TAKIM A</span>
+          <span class="score" id="dispScore">0 - 0</span>
+          <span class="team-name team-b" id="dispTeamB">TAKIM B</span>
+        </div>
+      </div>
+      <div class="clock" id="clockDisplay">0'</div>
+
+      <div class="stats-overlay">
+        <div class="stat-box">
+          <div class="stat-label">xG</div>
+          <div class="stat-values"><span class="va" id="statXgA">-</span> / <span class="vb" id="statXgB">-</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Şut</div>
+          <div class="stat-values"><span class="va" id="statShotsA">-</span> / <span class="vb" id="statShotsB">-</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Topa Sahip Olma</div>
+          <div class="stat-values"><span class="va" id="statPossA">-</span>% / <span class="vb" id="statPossB">-</span>%</div>
+        </div>
+      </div>
+
+      <div class="goal-flash" id="goalFlash">GOL!</div>
+
+      <div class="brand-tag">Match Night TR</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------- STEP 1: Sabitler ----------
+// Bu bölümde sahanın boyutları ve oynatma ile ilgili temel sabitleri tanımlıyoruz.
+// Canvas, içinde bulunduğu .video-wrap kutusunun boyutuna göre ayarlanacak.
+
+const canvas = document.getElementById('fieldCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const wrap = document.getElementById('videoWrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Renkler
+const COLORS = {
+  grassLight: '#114a2c',
+  grassDark: '#0d3d24',
+  line: 'rgba(255,255,255,0.35)',
+  teamA: '#c1272d',
+  teamB: '#3a7bd5',
+  ball: '#f4f1e6',
+  gold: '#d4af37'
+};
+
+// ============================================
+// ADIM 2: BACKEND BAĞLANTISI VE VERİ MODLARI
+// ============================================
+
+// Backend adresimiz (Render'da yayınladığımız sunucu)
+const BACKEND_URL = 'https://match-night-backend.onrender.com';
+
+// ---------- Mod geçişleri ----------
+const modeFinishedBtn = document.getElementById('modeFinishedBtn');
+const modePredictBtn = document.getElementById('modePredictBtn');
+const modeManualBtn = document.getElementById('modeManualBtn');
+const finishedPanel = document.getElementById('finishedPanel');
+const predictPanel = document.getElementById('predictPanel');
+
+function setMode(mode){
+  [modeFinishedBtn, modePredictBtn, modeManualBtn].forEach(b => b.classList.remove('active'));
+  finishedPanel.style.display = 'none';
+  predictPanel.style.display = 'none';
+
+  if(mode === 'finished'){
+    modeFinishedBtn.classList.add('active');
+    finishedPanel.style.display = 'block';
+  } else if(mode === 'predict'){
+    modePredictBtn.classList.add('active');
+    predictPanel.style.display = 'block';
+  } else {
+    modeManualBtn.classList.add('active');
+    // Manuel modda hem panel gizli, kullanıcı formu kendi doldurur
+  }
+}
+modeFinishedBtn.addEventListener('click', () => setMode('finished'));
+modePredictBtn.addEventListener('click', () => setMode('predict'));
+modeManualBtn.addEventListener('click', () => setMode('manual'));
+
+// ---------- Yardımcı: backend'den JSON çek ----------
+async function apiGet(path){
+  const resp = await fetch(BACKEND_URL + path);
+  if(!resp.ok){
+    throw new Error('Sunucu hatası: ' + resp.status);
+  }
+  const data = await resp.json();
+  return data;
+}
+
+// ============================================
+// BİTMİŞ MAÇ MODU
+// ============================================
+const teamSearchInput = document.getElementById('teamSearchInput');
+const teamSearchBtn = document.getElementById('teamSearchBtn');
+const teamSearchResults = document.getElementById('teamSearchResults');
+const fixtureResults = document.getElementById('fixtureResults');
+const finishedStatus = document.getElementById('finishedStatus');
+
+function setStatus(el, text, type){
+  el.textContent = text;
+  el.classList.remove('error','ok');
+  if(type) el.classList.add(type);
+}
+
+teamSearchBtn.addEventListener('click', async () => {
+  const query = teamSearchInput.value.trim();
+  if(!query){ return; }
+
+  teamSearchResults.innerHTML = '';
+  fixtureResults.innerHTML = '';
+  setStatus(finishedStatus, 'Takım aranıyor...', null);
+
+  try{
+    const data = await apiGet('/api/teams?search=' + encodeURIComponent(query));
+    const teams = (data.response || []);
+
+    if(teams.length === 0){
+      setStatus(finishedStatus, 'Takım bulunamadı. Farklı bir isim dene.', 'error');
+      return;
+    }
+
+    setStatus(finishedStatus, teams.length + ' sonuç bulundu. Bir takım seç:', null);
+
+    teams.forEach(item => {
+      const team = item.team;
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `<span>${team.name}</span><span class="ri-sub">${team.country || ''}</span>`;
+      div.addEventListener('click', () => loadFixturesForTeam(team.id, team.name, div));
+      teamSearchResults.appendChild(div);
+    });
+  } catch(err){
+    setStatus(finishedStatus, 'Hata: ' + err.message + ' (Sunucu uyanıyor olabilir, 20-30 sn sonra tekrar dene)', 'error');
+  }
+});
+
+async function loadFixturesForTeam(teamId, teamName, clickedEl){
+  // Seçilen takımı görsel olarak işaretle
+  Array.from(teamSearchResults.children).forEach(c => c.classList.remove('selected'));
+  clickedEl.classList.add('selected');
+
+  fixtureResults.innerHTML = '';
+  setStatus(finishedStatus, teamName + ' için son maçlar yükleniyor...', null);
+
+  try{
+    const data = await apiGet('/api/last-fixtures?teamId=' + teamId + '&count=8');
+    const fixtures = (data.response || []);
+
+    if(fixtures.length === 0){
+      setStatus(finishedStatus, 'Bu takım için bitmiş maç bulunamadı.', 'error');
+      return;
+    }
+
+    setStatus(finishedStatus, 'Bir maç seç:', null);
+
+    fixtures.forEach(fx => {
+      const home = fx.teams.home;
+      const away = fx.teams.away;
+      const goals = fx.goals;
+      const date = new Date(fx.fixture.date);
+      const dateStr = date.toLocaleDateString('tr-TR');
+
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `<span>${home.name} ${goals.home} - ${goals.away} ${away.name}</span><span class="ri-sub">${dateStr}</span>`;
+      div.addEventListener('click', () => {
+        Array.from(fixtureResults.children).forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        loadFixtureDetail(fx.fixture.id);
+      });
+      fixtureResults.appendChild(div);
+    });
+  } catch(err){
+    setStatus(finishedStatus, 'Hata: ' + err.message, 'error');
+  }
+}
+
+// İstatistik adı -> form alanı eşlemesi için yardımcı
+function findStat(statsArr, names){
+  if(!statsArr) return null;
+  for(const s of statsArr){
+    if(names.includes(s.type)){
+      return s.value;
+    }
+  }
+  return null;
+}
+
+function parsePercent(val){
+  if(val === null || val === undefined) return null;
+  if(typeof val === 'string') return parseFloat(val.replace('%','')) || 0;
+  return val;
+}
+
+async function loadFixtureDetail(fixtureId){
+  setStatus(finishedStatus, 'Maç verileri yükleniyor...', null);
+
+  try{
+    const data = await apiGet('/api/fixture?fixtureId=' + fixtureId);
+    const fx = data.fixture.response[0];
+    const stats = data.statistics.response; // [{team:{...}, statistics:[...]}, {...}]
+
+    const home = fx.teams.home;
+    const away = fx.teams.away;
+    const goals = fx.goals;
+
+    // Temel alanları doldur
+    document.getElementById('teamA').value = home.name;
+    document.getElementById('teamB').value = away.name;
+    document.getElementById('scoreA').value = goals.home ?? 0;
+    document.getElementById('scoreB').value = goals.away ?? 0;
+
+    // Gol dakikaları (events üzerinden)
+    const events = fx.events || [];
+    const goalsA = [];
+    const goalsB = [];
+    events.forEach(ev => {
+      if(ev.type === 'Goal'){
+        const minute = ev.time.elapsed + (ev.time.extra ? ev.time.extra : 0);
+        if(ev.team.id === home.team_id || ev.team.name === home.name){
+          goalsA.push(minute);
+        } else {
+          goalsB.push(minute);
+        }
+      }
+    });
+    document.getElementById('goalsA').value = goalsA.join(', ');
+    document.getElementById('goalsB').value = goalsB.join(', ');
+
+    // İstatistikler (xG, şut, top hakimiyeti)
+    if(stats && stats.length >= 2){
+      const homeStats = stats.find(s => s.team.name === home.name)?.statistics || [];
+      const awayStats = stats.find(s => s.team.name === away.name)?.statistics || [];
+
+      const xgA = findStat(homeStats, ['expected_goals']);
+      const xgB = findStat(awayStats, ['expected_goals']);
+      document.getElementById('xgA').value = xgA !== null ? parseFloat(xgA).toFixed(2) : (goals.home + 0.3).toFixed(2);
+      document.getElementById('xgB').value = xgB !== null ? parseFloat(xgB).toFixed(2) : (goals.away + 0.3).toFixed(2);
+
+      const shotsA = findStat(homeStats, ['Total Shots']);
+      const shotsB = findStat(awayStats, ['Total Shots']);
+      document.getElementById('shotsA').value = shotsA ?? 10;
+      document.getElementById('shotsB').value = shotsB ?? 8;
+
+      const shotsOnA = findStat(homeStats, ['Shots on Goal']);
+      const shotsOnB = findStat(awayStats, ['Shots on Goal']);
+      document.getElementById('shotsOnA').value = shotsOnA ?? Math.max(goals.home, 1);
+      document.getElementById('shotsOnB').value = shotsOnB ?? Math.max(goals.away, 1);
+
+      const possA = parsePercent(findStat(homeStats, ['Ball Possession']));
+      const possB = parsePercent(findStat(awayStats, ['Ball Possession']));
+      if(possA !== null && possB !== null){
+        document.getElementById('possA').value = possA;
+        document.getElementById('possB').value = possB;
+      } else {
+        document.getElementById('possA').value = 50;
+        document.getElementById('possB').value = 50;
+      }
+
+      setStatus(finishedStatus, '✅ Veriler yüklendi. Aşağıdaki formu kontrol edip "Simülasyonu Başlat"a basabilirsin.', 'ok');
+    } else {
+      // İstatistik yoksa (bazı liglerde olmayabilir) makul tahminlerle doldur
+      document.getElementById('xgA').value = (goals.home + 0.3).toFixed(2);
+      document.getElementById('xgB').value = (goals.away + 0.3).toFixed(2);
+      document.getElementById('shotsA').value = 10;
+      document.getElementById('shotsB').value = 8;
+      document.getElementById('shotsOnA').value = Math.max(goals.home,1);
+      document.getElementById('shotsOnB').value = Math.max(goals.away,1);
+      document.getElementById('possA').value = 50;
+      document.getElementById('possB').value = 50;
+      setStatus(finishedStatus, '⚠️ Skor ve gol dakikaları gerçek, ancak bu maç için detaylı istatistik (xG/şut/top hakimiyeti) bulunamadı — makul varsayılan değerler dolduruldu. Formdan düzenleyebilirsin.', null);
+    }
+
+  } catch(err){
+    setStatus(finishedStatus, 'Hata: ' + err.message, 'error');
+  }
+}
+
+// ============================================
+// TAHMİN MODU
+// ============================================
+const predictSearchA = document.getElementById('predictSearchA');
+const predictSearchABtn = document.getElementById('predictSearchABtn');
+const predictResultsA = document.getElementById('predictResultsA');
+const predictSearchB = document.getElementById('predictSearchB');
+const predictSearchBBtn = document.getElementById('predictSearchBBtn');
+const predictResultsB = document.getElementById('predictResultsB');
+const generatePredictionBtn = document.getElementById('generatePredictionBtn');
+const predictStatus = document.getElementById('predictStatus');
+
+let selectedTeamA = null; // {id, name}
+let selectedTeamB = null;
+
+async function searchPredictTeam(query, resultsEl, onSelect){
+  resultsEl.innerHTML = '';
+  if(!query) return;
+  setStatus(predictStatus, 'Aranıyor...', null);
+  try{
+    const data = await apiGet('/api/teams?search=' + encodeURIComponent(query));
+    const teams = (data.response || []);
+    if(teams.length === 0){
+      setStatus(predictStatus, 'Sonuç bulunamadı.', 'error');
+      return;
+    }
+    setStatus(predictStatus, '', null);
+    teams.forEach(item => {
+      const team = item.team;
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `<span>${team.name}</span><span class="ri-sub">${team.country || ''}</span>`;
+      div.addEventListener('click', () => {
+        Array.from(resultsEl.children).forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        onSelect({id: team.id, name: team.name});
+      });
+      resultsEl.appendChild(div);
+    });
+  } catch(err){
+    setStatus(predictStatus, 'Hata: ' + err.message, 'error');
+  }
+}
+
+predictSearchABtn.addEventListener('click', () => {
+  searchPredictTeam(predictSearchA.value.trim(), predictResultsA, (team) => {
+    selectedTeamA = team;
+    checkPredictReady();
+  });
+});
+predictSearchBBtn.addEventListener('click', () => {
+  searchPredictTeam(predictSearchB.value.trim(), predictResultsB, (team) => {
+    selectedTeamB = team;
+    checkPredictReady();
+  });
+});
+
+function checkPredictReady(){
+  generatePredictionBtn.disabled = !(selectedTeamA && selectedTeamB);
+}
+
+// Bir takımın son maçlarından ortalama performans çıkar
+async function getTeamAverages(teamId){
+  const data = await apiGet('/api/last-fixtures?teamId=' + teamId + '&count=5');
+  const fixtures = data.response || [];
+
+  let totalGoalsFor = 0, totalGoalsAgainst = 0, count = 0;
+  fixtures.forEach(fx => {
+    const isHome = fx.teams.home.id === teamId;
+    const gf = isHome ? fx.goals.home : fx.goals.away;
+    const ga = isHome ? fx.goals.away : fx.goals.home;
+    if(gf !== null && ga !== null){
+      totalGoalsFor += gf;
+      totalGoalsAgainst += ga;
+      count++;
+    }
+  });
+
+  if(count === 0){
+    return { avgGoalsFor: 1.2, avgGoalsAgainst: 1.2, sampleSize: 0 };
+  }
+
+  return {
+    avgGoalsFor: totalGoalsFor / count,
+    avgGoalsAgainst: totalGoalsAgainst / count,
+    sampleSize: count
+  };
+}
+
+// Poisson benzeri basit rastgele gol sayısı üretici (ortalamaya göre ağırlıklı)
+function randomGoalsFromAvg(avg){
+  // Basit yaklaşım: ortalama etrafında rastgele dağılım, 0'dan küçük olamaz
+  const lambda = Math.max(avg, 0.2);
+  let L = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+  do{
+    k++;
+    p *= Math.random();
+  } while(p > L);
+  return k - 1;
+}
+
+function randomGoalMinutes(count){
+  const minutes = [];
+  for(let i=0;i<count;i++){
+    minutes.push(Math.floor(Math.random()*90) + 1);
+  }
+  return minutes.sort((a,b)=>a-b);
+}
+
+generatePredictionBtn.addEventListener('click', async () => {
+  setStatus(predictStatus, 'Geçmiş form verileri analiz ediliyor...', null);
+  generatePredictionBtn.disabled = true;
+
+  try{
+    const [avgA, avgB] = await Promise.all([
+      getTeamAverages(selectedTeamA.id),
+      getTeamAverages(selectedTeamB.id)
+    ]);
+
+    // Beklenen gol: kendi hücum ortalaması ile rakibin savunma ortalamasının karışımı
+    const expectedA = (avgA.avgGoalsFor + avgB.avgGoalsAgainst) / 2;
+    const expectedB = (avgB.avgGoalsFor + avgA.avgGoalsAgainst) / 2;
+
+    // Skor üret
+    const scoreA = randomGoalsFromAvg(expectedA);
+    const scoreB = randomGoalsFromAvg(expectedB);
+
+    // xG, beklenen değere yakın ama tam skora eşit değil (gerçekçilik için ufak rastgelelik)
+    const xgA = Math.max(0.1, expectedA + (Math.random()*0.6 - 0.3));
+    const xgB = Math.max(0.1, expectedB + (Math.random()*0.6 - 0.3));
+
+    // Şutlar, xG ile orantılı + rastgele
+    const shotsA = Math.round(xgA * 5 + Math.random()*4 + 4);
+    const shotsB = Math.round(xgB * 5 + Math.random()*4 + 4);
+    const shotsOnA = Math.max(scoreA, Math.round(shotsA * (0.35 + Math.random()*0.15)));
+    const shotsOnB = Math.max(scoreB, Math.round(shotsB * (0.35 + Math.random()*0.15)));
+
+    // Topa sahip olma, xG farkına göre eğilimli
+    let possA = 50 + (xgA - xgB) * 6 + (Math.random()*6 - 3);
+    possA = Math.min(75, Math.max(25, Math.round(possA)));
+    const possB = 100 - possA;
+
+    // Gol dakikaları
+    const goalsA = randomGoalMinutes(scoreA);
+    const goalsB = randomGoalMinutes(scoreB);
+
+    // Formu doldur
+    document.getElementById('teamA').value = selectedTeamA.name;
+    document.getElementById('teamB').value = selectedTeamB.name;
+    document.getElementById('scoreA').value = scoreA;
+    document.getElementById('scoreB').value = scoreB;
+    document.getElementById('xgA').value = xgA.toFixed(2);
+    document.getElementById('xgB').value = xgB.toFixed(2);
+    document.getElementById('shotsA').value = shotsA;
+    document.getElementById('shotsB').value = shotsB;
+    document.getElementById('shotsOnA').value = shotsOnA;
+    document.getElementById('shotsOnB').value = shotsOnB;
+    document.getElementById('possA').value = possA;
+    document.getElementById('possB').value = possB;
+    document.getElementById('goalsA').value = goalsA.join(', ');
+    document.getElementById('goalsB').value = goalsB.join(', ');
+
+    const sampleNote = (avgA.sampleSize === 0 || avgB.sampleSize === 0)
+      ? ' (Not: bir takım için geçmiş maç verisi bulunamadı, varsayılan ortalamalar kullanıldı.)'
+      : '';
+    setStatus(predictStatus, `✅ Senaryo üretildi (son ${avgA.sampleSize}-${avgB.sampleSize} maç formuna göre).${sampleNote} Formu kontrol edip "Simülasyonu Başlat"a basabilirsin.`, 'ok');
+
+  } catch(err){
+    setStatus(predictStatus, 'Hata: ' + err.message, 'error');
+  } finally {
+    generatePredictionBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
